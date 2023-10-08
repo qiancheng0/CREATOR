@@ -15,7 +15,7 @@ length = width = p/4
 # Calculate the area
 max_area = length * width
 # print the answer
-print("Maximum possible area for rectangle is", max_area)
+print("Final Answer:", max_area)
 ```
 
 ### Question
@@ -34,7 +34,7 @@ y_possible1 = y + math.sqrt(d**2 - (x2 - x1)**2)
 y_possible2 = y - math.sqrt(d**2 - (x2 - x1)**2)
 # calculate the product
 product = y_possible1 * y_possible2
-print("The product of all possible y-coordinates is", product)
+print("Answer Final:", product)
 ```
 
 ### Question
@@ -51,7 +51,7 @@ f = 13
 # Solve for q in terms of p using elimination method
 q = (c*d - a*f) / (b*d - a*e)
 # Print the solution
-print("q is equal to", q)
+print("Final Answer:", q)
 ```
 
 ### Question
@@ -65,7 +65,7 @@ distance_2 = 70
 # Calculate the fare
 fare_2 = fare_1 * (distance_2 / distance_1)
 # Print the result
-print("Ann would be charged $", fare_2, "if she had traveled 70 miles.")
+print("Final Answer:", fare_2)
 ```
 
 ### Question
@@ -84,7 +84,7 @@ for i in letters:
             if "A" in word:
                 count += 1
 # print the count
-print("Number of 3-letter words with at least one A:", count)
+print("Final Answer:", count)
 ```
 
 ### Question
@@ -103,7 +103,7 @@ c = math.sqrt(face2 * face3 / face1)
 # Calculating the volume
 volume = a * b * c
 # Printing the result
-print("The volume of the rectangular box is", volume, "cubic inches.")
+print("Final Answer:", volume)
 ```
 
 ### Question
@@ -119,7 +119,7 @@ C = np.dot(A, B)
 # Compute the sum of the elements in the resulting vector using np.sum()
 sum_of_elements = np.sum(C)
 # Print the result
-print("The sum of the elements is", sum_of_elements)
+print("Final Answer:", sum_of_elements)
 ```
 
 ### Question

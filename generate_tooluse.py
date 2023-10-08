@@ -1,10 +1,11 @@
 import json
 import re
-from utils import wolfram, chat_api
+from utils import wolfram, web_chat
+from grader import grade_answer
 
 # ================================ #
 # Choose from "MATH", "TabMWP"
-task = "TabMWP"
+task = "MATH"
 if task == "MATH":
     fields = ["algebra", "counting_and_probability", "geometry", "intermediate_algebra", "number_theory", "prealgebra", "precalculus"]
     sys_msg = "You are a helpful assistant in answering math competition problems."
@@ -18,17 +19,16 @@ start_key = 0
 temperature = 0.3
 prompt_file = f"{task}/prompt_lib/prompt_tooluse_part1.md"
 prompt2_file = f"{task}/prompt_lib/prompt_tooluse_part2.md"
-gen_func = chat_api
+gen_func = web_chat
 # ================================ #
 
 for field in fields:
-    save_file = f"{task}/results/results_{field}_tooluse.md"
-    f = open(save_file, "w")
-    f.close()
+    save_file = f"{task}/results/results_{field}_tooluse_temp{temperature}.md"
+    open(save_file, "w").close()
     
     f = open(prompt_file, "r")
     prompt = f.read().strip()
-    f.close
+    f.close()
 
     f = open(prompt2_file, "r")
     prompt_cont = f.read().strip()
@@ -52,7 +52,7 @@ for field in fields:
             env = prompt.replace("===qst===", line["question"])
             if task == "TabMWP":
                 env = env.replace("===table===", line["table"])
-            response = gen_func(env, start_key, sys_msg, temperature=temperature)
+            response = gen_func(env, sys_msg, temperature=temperature)
             
             use_wolfram = True
             try:
@@ -75,7 +75,7 @@ for field in fields:
             env_cont = prompt_cont.replace("===qst===", line["question"]).replace("===res===", response).replace("===wol===", wolfram_return)
             if task == "TabMWP":
                 env_cont = env_cont.replace("===table===", line["table"])
-            response_cont = gen_func(env_cont, start_key, sys_msg, temperature=temperature)
+            response_cont = gen_func(env_cont, sys_msg, temperature=temperature)
             
             try:
                 st = response_cont.index("Final Answer:") + len("Final Answer:")
@@ -95,7 +95,7 @@ for field in fields:
             model_ans = [float(ans) for ans in model_ans]
             correct_flag = False
             for ans in model_ans:
-                if round(ans,2) == round(correct_ans,2):
+                if grade_answer(str(ans), str(correct_ans)):
                     print("~~~ Correct Answer ~~~")
                     correct_flag = True
                     f = open(save_file, "a")
@@ -105,6 +105,7 @@ for field in fields:
                     f.write("\n\n=============================split case=============================\n\n")
                     f.close()
                     correct += 1
+                    break
 
             if not correct_flag:
                 print("!!! Wrong Answer !!!")

@@ -1,10 +1,13 @@
 import json
 import re
-from utils import process_code, chat_api, check_code_valid
+from utils import process_code, web_chat, check_code_valid
+from grader import grade_answer
+from cprint import *
 
 # ================================ #
 # Choose from "MATH", "TabMWP", "Creation"
-task = "Creation"
+task = "MATH"
+mode = None
 if task == "MATH":
     fields = ["algebra", "counting_and_probability", "geometry", "intermediate_algebra", "number_theory", "prealgebra", "precalculus"]
     sys_msg = "You are a helpful assistant in answering math competition problems."
@@ -25,8 +28,8 @@ prompt_creation = f"{task}/prompt_lib/prompt_CREATOR_creation.md"
 prompt_decision = f"{task}/prompt_lib/prompt_CREATOR_decision.md"
 prompt_rectification = f"{task}/prompt_lib/prompt_rectification.md"
 code_file = "code_exec/tmp0"
-gen_func = chat_api
-rectify_limit = 0
+gen_func = web_chat
+rectify_limit = 3
 # ================================ #
 if mode == "utilityhint":
     prompt_creation = f"{task}/prompt_lib/prompt_CREATOR_creation_utilityhint.md"
@@ -37,17 +40,16 @@ if mode == "allhint":
 # ================================ #
 
 for field in fields:
-    save_file = f"{task}/results/results_{field}_CREATOR.md"
-    f = open(save_file, "w")
-    f.close()
+    save_file = f"{task}/results/results_{field}_CREATOR_temp{temperature}.md"
+    open(save_file, "w").close()
     
     f = open(prompt_creation, "r")
     prompt1 = f.read().strip()
-    f.close
+    f.close()
     
     f = open(prompt_decision, "r")
     prompt2 = f.read().strip()
-    f.close
+    f.close()
 
     f = open(prompt_rectification, "r")
     err_prompt = f.read().strip()
@@ -66,7 +68,8 @@ for field in fields:
     exec_err = 0
     one_time_pass = 0
     
-    for line in lines:
+    for line in lines[:]:
+        q = line["question"].strip()
         try:
             correct_ans = line["answer"]
             
@@ -85,7 +88,7 @@ for field in fields:
                     hints += "Args:\n" + line["args"].strip() + "\n"
                     hints += "Return:\n" + line["return"].strip() + "\n"
                     env1 = env1.replace("===hints===", hints.strip())
-            response1 = gen_func(env1, start_key, sys_msg, temperature=temperature)
+            response1 = gen_func(env1, sys_msg, temperature=temperature)
             
             tool_time = 0
             while tool_time < 3:
@@ -93,7 +96,7 @@ for field in fields:
                 if (check_code_valid(response1, code_file)):
                     break
                 print("!!! Wrong tool format generated !!!")
-                response1 = gen_func(env1, start_key, sys_msg, temperature=temperature)
+                response1 = gen_func(env1, sys_msg, temperature=temperature)
                 tool_time += 1
                 
             env2 = prompt2.replace("===qst===", line["question"]).replace("===tool===", response1)
@@ -103,13 +106,23 @@ for field in fields:
                 env2 = env2.replace("===constants===", line["constant"].strip())
                 if mode == "utilityhint" or mode == "allhint":
                     env2 = env2.replace("===hints===", hints.strip())
-            response2 = gen_func(env2, start_key, sys_msg, temperature=temperature)
+            response2: str = gen_func(env2, sys_msg, temperature=temperature)
             
             # To further enhance the validity of the tool format
-            if "```" not in response1:
-                response1 = "```python\n" + response1 + "\n```"
-            if "```" not in response2:
-                response2 = "```python\n" + response2 + "\n```"
+            # if "```" not in response1:
+            #     response1 = "```python\n" + response1 + "\n```"
+            # if "```" not in response2:
+            #     response2 = "```python\n" + response2 + "\n```"
+            # response = response1 + "\n" + response2
+            
+            if not response1.startswith("```python"):
+                response1 = "```python\n" + response1.strip()
+            if not response1.endswith("```"):
+                response1 = response1.strip() + "\n```"
+            if not response2.startswith("```python"):
+                response2 = "```python\n" + response2.strip()
+            if not response2.endswith("```"):
+                response2 = response2.strip() + "\n```"
             response = response1 + "\n" + response2
             
             time = 0
@@ -119,12 +132,19 @@ for field in fields:
                 
                 if not if_succ and time <= rectify_limit:
                     print(f"!!! Error in execution, time {time} !!!")
+                    
+                    f = open(save_file, "a")
+                    if task == "TabMWP":
+                        f.write("### Table\n" + line["table"] + "\n")
+                    f.write("### Question\n" + line["question"] + "\n### Respose\n" + response.strip() + "\n\n### Back info:\n" + info.strip() + f"\n\nThe {time} time you try!\nThe correct answer should be {correct_ans}\n\n")
+                    f.close()
+                    
                     rectify_env = err_prompt.replace("===qst===", line["question"]).replace("===ori===", response).replace("===err===", info)
                     if task == "TabMWP":
                         rectify_env = rectify_env.replace("===table===", line["table"])
                     if task == "Creation":
                         rectify_env = rectify_env.replace("===constants===", line["constant"].strip())
-                    response = gen_func(rectify_env, start_key, sys_msg, temperature=temperature)
+                    response = gen_func(rectify_env, sys_msg, temperature=temperature)
                     if "```" not in response:
                         response = "```python\n" + response + "\n```"
                     continue
@@ -142,11 +162,15 @@ for field in fields:
                 
                 elif if_succ:
                     print("~~~ Runing successfully ~~~")
-                    model_ans = re.findall(r'-?\d+\.?\d*', info)
-                    model_ans = [float(ans) for ans in model_ans]
+                    if "Final Answer:" in info:
+                        model_ans = [info.split("Final Answer:")[1].strip()]
+                    else:
+                        cprint.info("Getting Answer by Directly Extracting Number ...")
+                        model_ans = re.findall(r'-?\d+\.?\d*', info)
+                    
                     correct_flag = False
                     for ans in model_ans:
-                        if round(ans,2) == round(correct_ans,2):
+                        if grade_answer(str(ans), str(correct_ans)):
                             print("~~~ Correct Answer ~~~")
                             correct_flag = True
                             f = open(save_file, "a")
@@ -158,7 +182,8 @@ for field in fields:
                             correct += 1
                             if time == 1:
                                 one_time_pass += 1
-                                
+                            break
+                    
                     if not correct_flag:
                         print("!!! Wrong Answer !!!")
                         f = open(save_file, "a")

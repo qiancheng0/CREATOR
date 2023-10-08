@@ -14,18 +14,17 @@ for line in lines:
 key_num = len(key_pool)
 
 # Use ChatGPT API provided by OpenAI
-def chat_api(instr, current_key, system_msg, temperature=0.3):
-    # print("~~~ In ChatGPT ~~~")
+def web_chat(usr_msg, system_msg, temperature=0.3):
     try_num = 0
     while try_num < key_num:
         try_num += 1
         try:
-            openai.api_key = key_pool[(try_num+current_key) % key_num]
+            openai.api_key = key_pool[try_num % key_num]
             response = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
                 messages = [
                     {"role": "system", "content": system_msg},
-                    {"role": "user", "content": instr},
+                    {"role": "user", "content": usr_msg},
                 ],
                 temperature=temperature,
                 max_tokens=1024,

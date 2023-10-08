@@ -1,10 +1,11 @@
 import json
 import re
-from utils import chat_api
+from utils import web_chat
+from grader import grade_answer
 
 # ================================ #
 # Choose from "MATH", "TabMWP", "Creation"
-task = "TabMWP"
+task = "MATH"
 if task == "MATH":
     fields = ["algebra", "counting_and_probability", "geometry", "intermediate_algebra", "number_theory", "prealgebra", "precalculus"]
     sys_msg = "You are a helpful assistant in answering math competition problems."
@@ -20,14 +21,13 @@ else:
 start_key = 0
 temperature = 0.3
 prompt_file = f"{task}/prompt_lib/prompt_cot.md"
-gen_func = chat_api
+gen_func = web_chat
 # ================================ #
 
 for field in fields:
-    save_file = f"{task}/results/results_{field}_cot.md"
-    f = open(save_file, "w")
-    f.close()
-    
+    save_file = f"{task}/results/results_{field}_cot_temp{temperature}.md"
+    open(save_file, "w").close()
+
     f = open(prompt_file, "r")
     prompt = f.read().strip()
     f.close()
@@ -51,7 +51,7 @@ for field in fields:
                 env = env.replace("===table===", line["table"])
             if task == "Creation":
                 env = env.replace("===constants===", line["constant"].strip())
-            response = gen_func(env, start_key, sys_msg, temperature)
+            response = gen_func(env, sys_msg, temperature)
             
             try:
                 res = response.split("Final Answer:")[-1].strip()
@@ -73,7 +73,7 @@ for field in fields:
             else:
                 model_ans = float(model_ans[0])
                         
-            if have_ans and model_ans == correct_ans:
+            if have_ans and grade_answer(str(model_ans), str(correct_ans)):
                 print("~~~ Correct Answer ~~~")
                 f = open(save_file, "a")
                 if task == "TabMWP":

@@ -1,12 +1,15 @@
 import json
 import re
-from utils import process_code, chat_api
+from utils import process_code, web_chat
+from grader import grade_answer
+from cprint import *
 
 # ================================ #
 # Choose from "MATH", "TabMWP", "Creation"
-task = "TabMWP"
+task = "MATH"
+mode = None
 if task == "MATH":
-    fields = ["algebra", "counting_and_probability", "geometry", "intermediate_algebra", "number_theory", "prealgebra", "precalculus"]
+    fields = ["precalculus"]
     sys_msg = "You are a helpful assistant in answering math competition problems."
 elif task == "TabMWP":
     fields = ["tabmwp"]
@@ -24,8 +27,8 @@ temperature = 0.3
 prompt_toolcreate = f"{task}/prompt_lib/prompt_toolcreate_whole.md"
 prompt_rectification = f"{task}/prompt_lib/prompt_rectification.md"
 code_file = "code_exec/tmp0"
-gen_func = chat_api
-rectify_limit = 0
+gen_func = web_chat
+rectify_limit = 3
 # ================================ #
 if mode == "utilityhint":
     prompt_creation = f"{task}/prompt_lib/prompt_CREATOR_creation_utilityhint.md"
@@ -36,13 +39,12 @@ if mode == "allhint":
 # ================================ #
 
 for field in fields:
-    save_file = f"{task}/results/results_{field}_toolcreate_whole.md"
-    f = open(save_file, "w")
-    f.close()
+    save_file = f"{task}/results_new/results_{field}_toolcreate_whole_temp{temperature}.md"
+    open(save_file, "w").close()
     
     f = open(prompt_toolcreate, "r")
     prompt = f.read().strip()
-    f.close
+    f.close()
 
     f = open(prompt_rectification, "r")
     err_prompt = f.read().strip()
@@ -80,7 +82,7 @@ for field in fields:
                     hints += "Args:\n" + line["args"].strip() + "\n"
                     hints += "Return:\n" + line["return"].strip() + "\n"
                     env = env.replace("===hints===", hints.strip())
-            response = gen_func(env, start_key, sys_msg, temperature=temperature)
+            response = gen_func(env, sys_msg, temperature=temperature)
             
             if "```" not in response:
                 response = "```python\n" + response + "\n```"
@@ -97,7 +99,7 @@ for field in fields:
                         rectify_env = rectify_env.replace("===table===", line["table"])
                     if task == "Creation":
                         rectify_env = rectify_env.replace("===constants===", line["constant"].strip())
-                    response = gen_func(rectify_env, start_key, sys_msg, temperature=temperature)
+                    response = gen_func(rectify_env, sys_msg, temperature=temperature)
                     if "```" not in response:
                         response = "```python\n" + response + "\n```"
                     continue
@@ -115,11 +117,15 @@ for field in fields:
                 
                 elif if_succ:
                     print("~~~ Runing successfully ~~~")
-                    model_ans = re.findall(r'-?\d+\.?\d*', info)
-                    model_ans = [float(ans) for ans in model_ans]
+                    if "Final Answer:" in info:
+                        model_ans = [info.split("Final Answer:")[1].strip()]
+                    else:
+                        cprint.info("Getting Answer by Directly Extracting Number ...")
+                        model_ans = re.findall(r'-?\d+\.?\d*', info)
+
                     correct_flag = False
                     for ans in model_ans:
-                        if round(ans,2) == round(correct_ans,2):
+                        if grade_answer(str(ans), str(correct_ans)):
                             print("~~~ Correct Answer ~~~")
                             correct_flag = True
                             f = open(save_file, "a")
@@ -131,6 +137,7 @@ for field in fields:
                             correct += 1
                             if time == 1:
                                 one_time_pass += 1
+                            break
                                 
                     if not correct_flag:
                         print("!!! Wrong Answer !!!")

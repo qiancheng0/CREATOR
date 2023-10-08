@@ -44,7 +44,7 @@ p = 24
 # call the tool to solve the problem
 max_area = max_rectangle_area(perimeter=p)
 # print the answer
-print("Maximum possible area for rectangle is", max_area)
+print("Final Answer:", max_area)
 ```
 
 ### Question
@@ -85,7 +85,7 @@ for y in ys:
     product *= y
 
 # Print the answer
-print("The product of all possible y-coordinates is", product)
+print("Final Answer:", product)
 ```
 
 ### Question
@@ -109,7 +109,7 @@ def solve_equations():
 q = solve_equations()
 
 # Print the answer
-print("q is equal to", q)
+print("Final Answer:", q)
 ```
 
 ### Question
@@ -146,7 +146,7 @@ distance2 = 70
 fare2 = taxi_fare(distance1, fare1, distance2)
 
 # Print the answer
-print("Ann would be charged $", fare2, "if she traveled 70 miles.")
+print("Final Answer:", fare2)
 ```
 
 ### Question
@@ -171,7 +171,7 @@ def count_words():
 # Call the function to count the number of words
 count = count_words()
 # Print the answer
-print("The number of 3-letter words is", count)
+print("Final Answer:", count)
 ```
 
 ### Question
@@ -205,7 +205,7 @@ area3 = 6
 volume = solve_box_volume(area1, area2, area3)
 
 # Print the volume
-print("The volume of the rectangular box is", volume, "cubic inches.")
+print("Final Answer:", volume)
 ```
 
 ### Question
@@ -226,11 +226,10 @@ def sum_of_matrix_vector_product(matrix, vector):
     product = matrix.dot(vector)
     return np.sum(product)
 
-import numpy as np
 matrix = np.array([[2, -1], [-3, 4]])
 vector = np.array([[3], [-1]])
 result = sum_of_matrix_vector_product(matrix, vector)
-print("THe sum of the result is", result)
+print("Final Answer:", result)
 ```
 
 ### Question
